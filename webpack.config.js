@@ -1,5 +1,6 @@
 const path = require('path');
 const GasPlugin = require("gas-webpack-plugin");
+const TerserPlugin = require('terser-webpack-plugin');
 
 module.exports = {
   mode: 'development',
@@ -13,7 +14,7 @@ module.exports = {
     rules: [
       {
         test: /\.ts$/,
-        use: 'ts-loader'
+        use: 'babel-loader'
       }
     ]
   },
@@ -26,7 +27,24 @@ module.exports = {
   },
   mode: 'production',
   optimization: {
-    usedExports: true,
+    usedExports: true, 
+    minimize: true,
+    minimizer: [
+      new TerserPlugin({
+        terserOptions: {
+          ecma: 6,
+          warnings: false,
+          mangle: {},
+          compress: {
+            drop_console: false,
+            drop_debugger: true,
+          },
+          output: {
+            beautify: false,
+          },
+        },
+      }),
+    ]
   },
   plugins: [
     new GasPlugin()
