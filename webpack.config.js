@@ -19,8 +19,14 @@ module.exports = {
   },
   resolve: {
     extensions: [
-      '.ts'
-    ]
+      '.ts',
+      '.js'
+    ],
+    modules: ['node_modules']
+  },
+  mode: 'production',
+  optimization: {
+    usedExports: true,
   },
   plugins: [
     new GasPlugin()
