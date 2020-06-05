@@ -7,9 +7,7 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlaWAVJfNWC4XfnRx96p9cztBcdQV6l8aKmzA
 const HEX_STR_VERIFY = /^(?:[0-9a-f]{2})+$/i;
 
 /// @see https://docs.rock7.com/reference#push-api
-export interface Rock7Payload {
-  /// Unique ID for this report
-  id?: string;
+interface Rock7PayloadRaw {
   /// JWT Issuer
   iss: string;
   /// JWT Issue time
@@ -21,11 +19,37 @@ export interface Rock7Payload {
   /// Type of device
   device_type: 'LEOPARD' | 'ROCKBLOCK' | 'TIGERSHARK' | 'GRIFFIN';
   /// The serial number of the device.
+  serial: string;
+  /// The MOMSN of the SBD transmission. The MOMSN is a counter stored in the Iridium device, incremented upon transmission.
+  momsn: string;
+  /// Timestamp that the message was transmitted.
+  transmit_time: string;
+  /// The approximate longitude of the device, derived by the Iridium satellites.
+  iridium_longitude: string;
+  /// The approximate latitude of the device, derived by the Iridium satellites.
+  iridium_latitude: string;
+  /// The accuracy, in km, of the Iridium derived position.
+  iridium_cep: string;
+  /// Message payload, as a hex encoded string
+  data: string;
+}
+
+export interface Rock7Payload {
+  [key: string]: string | number | Date | boolean;
+  /// Unique ID for this report
+  id?: string;
+  /// Message Transport Method
+  transport?: 'IRIDIUM' | 'GPRS' | 'OTHER';
+  /// IMEI of Iridium device (only present for ROCKBLOCK device types)
+  imei: string;
+  /// Type of device
+  device_type: 'LEOPARD' | 'ROCKBLOCK' | 'TIGERSHARK' | 'GRIFFIN';
+  /// The serial number of the device.
   serial: number;
   /// The MOMSN of the SBD transmission. The MOMSN is a counter stored in the Iridium device, incremented upon transmission.
   momsn: number;
   /// Timestamp that the message was transmitted.
-  transmit_time: string;
+  transmit_time: Date;
   /// The approximate longitude of the device, derived by the Iridium satellites.
   iridium_longitude: number;
   /// The approximate latitude of the device, derived by the Iridium satellites.
@@ -33,7 +57,43 @@ export interface Rock7Payload {
   /// The accuracy, in km, of the Iridium derived position.
   iridium_cep: number;
   /// Message payload, as a hex encoded string
-  data: string;
+  data: string | false;
+}
+
+function rock7ConvertPost(payload: Rock7PayloadRaw): Rock7Payload {
+  // remove extra keys from payload
+  const ALLOWED_KEYS = [
+    'id',
+    'transport',
+    'imei',
+    'device_type',
+    'serial',
+    'momsn',
+    'transmit_time',
+    'iridium_longitude',
+    'iridium_latitude',
+    'iridium_cep',
+    'data',
+  ];
+  const filtered_payload = {};
+  // change the types of some special properties, and remove extra keys
+  Object.keys(payload)
+    .filter((k) => ALLOWED_KEYS.includes(k))
+    .map((k) => {
+      // Date
+      if (k === 'transmit_time')
+        filtered_payload[k] = new Date(payload[k] ? '20' + payload[k].replace(' ', 'T') : NaN);
+      // Hex to string
+      else if (k === 'data') filtered_payload[k] = rock7HexToString(payload[k]);
+      // Int
+      else if (k === 'serial' || k === 'momsn') filtered_payload[k] = parseInt(payload[k]);
+      // Float
+      else if (['iridium_longitude', 'iridium_latitude', 'iridium_cep'].includes(k))
+        filtered_payload[k] = parseFloat(payload[k]);
+      // string
+      else filtered_payload[k] = payload[k];
+    });
+  return filtered_payload as Rock7Payload;
 }
 
 export function rock7ParsePost(payload_str: string): Rock7Payload | false {
@@ -44,16 +104,19 @@ export function rock7ParsePost(payload_str: string): Rock7Payload | false {
     console.error(`JWT not found in payload string "${payload_str}"`);
     return false;
   }
-  // return the JWT decoded message
+  // use JWT to decode and verify the message
+  let decoded: Rock7PayloadRaw;
   try {
     const result = JWT.verify(payload.JWT, ROCK7_PUB_KEY, { algorithms: ['RS256'] });
-    if (typeof result === 'string') return JSON.parse(result);
-    else return result as Rock7Payload;
+    if (typeof result === 'string') decoded = JSON.parse(result);
+    else decoded = result as Rock7PayloadRaw;
   } catch (e) {
     console.error('Exception during JWT verification: ');
     console.error(e);
     return false;
   }
+  // parse the decoded payload into better types, and return it
+  return rock7ConvertPost(decoded);
 }
 
 export function rock7HexToString(hex_str: string): string | false {

@@ -15,7 +15,7 @@ module.exports = {
       {
         test: /\.ts$/,
         use: 'babel-loader'
-      }
+      },
     ]
   },
   resolve: {
