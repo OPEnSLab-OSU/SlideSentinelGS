@@ -11,36 +11,49 @@
 
     function generatePayload(e) {
         e.preventDefault();
-        let str = JSON.stringify({
-            ID: parseInt(document.getElementById('id').value),
-            CONF: JSON.stringify({ PROP: PAYLOAD_ARRAY_LABELS.map((l) => parseInt(document.getElementById(l).value)) })
-        });
-        document.getElementById('output_text').value = str;
+        const id = parseInt(document.getElementById('id').value);
+        const output = document.getElementById('output_text');
+        if (isNaN(id) || id < 0)
+            output.value = 'Please specify a valid Rover ID';
+        else {
+            const parsed_vals = 
+                PAYLOAD_ARRAY_LABELS.map((l) => parseInt(document.getElementById(l).value));
+            const inval_idx = parsed_vals.reduce((a, c, i) => isNaN(c) || c < -1 ? a.concat(i) : a, []);
+            if (inval_idx.length)
+                output.value = 'Invalid value(s): ' + inval_idx.map(i => PAYLOAD_ARRAY_LABELS[i]).join(', ');
+            else
+                output.value = JSON.stringify({
+                    ID: parseInt(id),
+                    CONF: JSON.stringify({ 
+                        PROP: parsed_vals,
+                    })
+                });
+        }
         return false;
     }
 </script>
     
 <form onsubmit="return generatePayload(event);">
     <h2> SS Payload Data: </h2>
+    Leave -1 for unchanged. <br>
     <label for="id">Rover ID</label>
     <input type="number" id="id"> <br>
     <label for="timeout">Timeout</label>
-    <input type="number" id="timeout" value="2000"> <br>
+    <input type="number" id="timeout" value="-1"> <br>
     <label for="retries">Retries</label>
-    <input type="number" id="retries" value="4"> <br>
+    <input type="number" id="retries" value="-1"> <br>
     <label for="wake_time">Wake Time</label>
-    <input type="number" id="wake_time" value="1"> <br>
+    <input type="number" id="wake_time" value="-1"> <br>
     <label for="sleep_time">Sleep Time</label>
-    <input type="number" id="sleep_time" value="1"> <br>
+    <input type="number" id="sleep_time" value="-1"> <br>
     <label for="sensitivity">Sensitivity</label>
-    <input type="number" id="sensitivity" value="47"> <br>
+    <input type="number" id="sensitivity" value="-1"> <br>
     <label for="log_freq">Log Frequency</label>
-    <input type="number" id="log_freq" value="80000"> <br>
+    <input type="number" id="log_freq" value="-1"> <br>
     <label for="threshold">Threshold</label>
-    <input type="number" id="threshold" value="3"> <br>
+    <input type="number" id="threshold" value="-1"> <br>
     <input type="submit">
 </form>
 
 <textarea rows="15" cols="30" readOnly="true" id="output_text"></textarea> <br>
 <input type="button" value="Close" onclick="google.script.host.close()" />
-    
