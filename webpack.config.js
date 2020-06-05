@@ -8,14 +8,15 @@ module.exports = {
   devtool: false,
   output: {
     filename: 'bundle.js',
-    path: path.join(__dirname, 'dist')
+    path: path.join(__dirname, 'dist'),
+    globalObject: 'this'
   },
   module: {
     rules: [
       {
         test: /\.ts$/,
         use: 'babel-loader'
-      },
+      }
     ]
   },
   resolve: {
@@ -27,26 +28,27 @@ module.exports = {
   },
   mode: 'production',
   optimization: {
-    usedExports: true, 
+    usedExports: true,
     minimize: true,
     minimizer: [
       new TerserPlugin({
         terserOptions: {
+          test: /\.js(\?.*)?$/i,
           ecma: 6,
-          warnings: false,
-          mangle: {},
+          warnings: true,
+          mangle: false,
           compress: {
             drop_console: false,
             drop_debugger: true,
           },
           output: {
-            beautify: false,
+            beautify: false
           },
         },
       }),
     ]
   },
   plugins: [
-    new GasPlugin()
+    new GasPlugin({ comment: true })
   ]
 };

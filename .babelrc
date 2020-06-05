@@ -4,17 +4,18 @@
         [ 
             "@babel/env", 
             { 
-            "useBuiltIns": "usage", 
-            "corejs": 3,
-            "targets": {
-                "esmodules": true
-              },
-              // will be default in babel 8
-              "bugfixes": true
+                "useBuiltIns": "usage", 
+                "corejs": 3,
+                "targets": {
+                    "esmodules": true
+                },
+                // will be default in babel 8
+                "bugfixes": true
             } 
         ],
         "@babel/typescript", 
-        "gas"
+        "gas",
+        "minify"
     ],
     "plugins": [
         "@babel/proposal-class-properties",
