@@ -1,8 +1,5 @@
-# gas-clasp-starter
-A starter template for Google Apps Script by [google/clasp](https://github.com/google/clasp)
-
-## Article
-[(Japanese) Google Apps Script をローカル環境で快適に開発するためのテンプレートを作りました](https://qiita.com/howdy39/items/0e799a9bfc1d3bccf6e5)
+# SlideSentinelGS
+A GS Implementation to receive Rock7 Data and store it into a Spreadsheet.
 
 ## Tech Stack
 - [google/clasp](https://github.com/google/clasp)
@@ -11,6 +8,7 @@ A starter template for Google Apps Script by [google/clasp](https://github.com/g
 - [ESLint](https://github.com/eslint/eslint)
 - [Prettier](https://prettier.io/)
 - [Jest](https://facebook.github.io/jest/)
+- [Babel](https://babeljs.io/)
 
 ## Prerequisites
 - [Node.js](https://nodejs.org/)
@@ -29,27 +27,6 @@ rm -Rf .git
 npm install
 ```
 
-### Configuration
-#### Open `.clasp.json`, change scriptId
-What is scriptId ? https://github.com/google/clasp#scriptid-required
-```
-{
-  "scriptId": <your_script_id>,
-  "rootDir": "dist"
-}
-```
-
-#### Open `src/appsscript.json`, change timeZone (optional)
-[Apps Script Manifests](https://developers.google.com/apps-script/concepts/manifests)
-```
-{
-  "timeZone": "Asia/Tokyo", ## Change timeZone
-  "dependencies": {
-  },
-  "exceptionLogging": "STACKDRIVER"
-}
-```
-
 ### Development and build project
 ```
 npm run build
@@ -60,23 +37,14 @@ npm run build
 clasp push
 ```
 
+### Deploy
+Use `clasp deployments` to view current deployments, and chose the deployment ID currently used by the RockBlock portal. To redeploy to that ID:
+```
+clasp deploy -i <deployment_id>
+```
+Note that `clasp deploy` without the `-i` flag will create a new deployment instead of modifying the old one, which changes the URL of the API.
 
 
-## Advanced
-### Using Es6 with Apps Script
-[Using Es6 with Apps Script](http://ramblings.mcpher.com/Home/excelquirks/gassnips/es6shim)
-
-
-
-## Others
-### howdy39/gas-clasp-library
-[howdy39/gas-clasp-library](https://github.com/howdy39/gas-clasp-library) is sample project made with [Google Apps Script Libraries](https://developers.google.com/apps-script/guides/libraries).   
-also, `gas-clasp-library` use circle CI.
-
-### takanakahiko/sao-clasp
-[takanakahiko/sao-clasp](https://github.com/takanakahiko/sao-clasp) was made based on gas-clasp-starter and [SAO](https://github.com/saojs/sao).
-
-
-
-## License
-This software is released under the MIT License, see LICENSE.txt.
+## Notes
+* The Google Apps Script edit portal breaks completely when `doPost` is enabled due to the size of the bundle. Use `clasp` wherever possible.
+* In order to authorize the script to use Google Sheets, you may need to run a function in the Google Apps Script edit portal. To do this, comment out all functions except for the one which uses Google Sheets and run `npm run build && clasp push`. This will push a significantly smaller bundle, allowing the browser to reasonable load the Google Apps Script edit portal. Once this is done, use `clasp open` to open the edit portal, and manually run the function which uses Google Sheets. You should see a OAuth consent screen requesting access for your script, once you have completed this screen your script will freely be able to edit Sheets.

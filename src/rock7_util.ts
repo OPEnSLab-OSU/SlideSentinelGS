@@ -1,9 +1,11 @@
 import * as JWT from 'jsonwebtoken';
 
+/** Rock7 public key for verifying JWTs, see https://docs.rock7.com/reference#push-api for more info */
 const ROCK7_PUB_KEY = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlaWAVJfNWC4XfnRx96p9cztBcdQV6l8aKmzAlZdpEcQR6MSPzlgvihaUHNJgKm8t5ShR3jcDXIOI7er30cIN4/9aVFMe0LWZClUGgCSLc3rrMD4FzgOJ4ibD8scVyER/sirRzf5/dswJedEiMte1ElMQy2M6IWBACry9u12kIqG0HrhaQOzc6Tr8pHUWTKft3xwGpxCkV+K1N+9HCKFccbwb8okRP6FFAMm5sBbw4yAu39IVvcSL43Tucaa79FzOmfGs5mMvQfvO1ua7cOLKfAwkhxEjirC0/RYX7Wio5yL6jmykAHJqFG2HT0uyjjrQWMtoGgwv9cIcI7xbsDX6owIDAQAB
 -----END PUBLIC KEY-----`;
 
+/** Regular expression used by rock7HexToString to validate hex strings */
 const HEX_STR_VERIFY = /^(?:[0-9a-f]{2})+$/i;
 
 /// @see https://docs.rock7.com/reference#push-api
@@ -34,6 +36,10 @@ interface Rock7PayloadRaw {
   data: string;
 }
 
+/**
+ * Iridium message payload, based on information from
+ * https://docs.rock7.com/reference#push-api and testing.
+ */
 export interface Rock7Payload {
   [key: string]: string | number | Date | boolean;
   /// Unique ID for this report
@@ -60,6 +66,7 @@ export interface Rock7Payload {
   data: string | false;
 }
 
+/** Utility function to convert strings to thier typed representations in a Rock7Payload */
 function rock7ConvertPost(payload: Rock7PayloadRaw): Rock7Payload {
   // remove extra keys from payload
   const ALLOWED_KEYS = [
@@ -82,13 +89,18 @@ function rock7ConvertPost(payload: Rock7PayloadRaw): Rock7Payload {
     .map((k) => {
       // Date
       if (k === 'transmit_time')
-        filtered_payload[k] = new Date(payload[k] ? '20' + payload[k].replace(' ', 'T') : NaN);
+        filtered_payload[k] = new Date(
+          payload[k] ? '20' + payload[k].replace(' ', 'T') : NaN
+        );
       // Hex to string
       else if (k === 'data') filtered_payload[k] = rock7HexToString(payload[k]);
       // Int
-      else if (k === 'serial' || k === 'momsn') filtered_payload[k] = parseInt(payload[k]);
+      else if (k === 'serial' || k === 'momsn')
+        filtered_payload[k] = parseInt(payload[k]);
       // Float
-      else if (['iridium_longitude', 'iridium_latitude', 'iridium_cep'].includes(k))
+      else if (
+        ['iridium_longitude', 'iridium_latitude', 'iridium_cep'].includes(k)
+      )
         filtered_payload[k] = parseFloat(payload[k]);
       // string
       else filtered_payload[k] = payload[k];
@@ -96,6 +108,17 @@ function rock7ConvertPost(payload: Rock7PayloadRaw): Rock7Payload {
   return filtered_payload as Rock7Payload;
 }
 
+/**
+ * Converts a RockBlock JSON payload from the RockBlock push API
+ * (https://docs.rock7.com/reference#push-api) into a typed object.
+ * payload_str must be a JSON object with a JWT field containing a
+ * JSON web token signed by RockBlock (ROCK7_PUB_KEY) and a JWT payload
+ * that matches the vformat of the Rock7Raw interface. This function will
+ * return false if payload_str does not have a JWT field, the JWT is invalid,
+ * or the JWT payload has the incorrect format.
+ * @param payload_str A JSON string of format { JWT: "..." }
+ * @returns A Rock7Payload if payload_str is correct, false otherwise.
+ */
 export function rock7ParsePost(payload_str: string): Rock7Payload | false {
   // Serialize the JSON payload
   const payload: { JWT?: string } = JSON.parse(payload_str);
@@ -107,7 +130,9 @@ export function rock7ParsePost(payload_str: string): Rock7Payload | false {
   // use JWT to decode and verify the message
   let decoded: Rock7PayloadRaw;
   try {
-    const result = JWT.verify(payload.JWT, ROCK7_PUB_KEY, { algorithms: ['RS256'] });
+    const result = JWT.verify(payload.JWT, ROCK7_PUB_KEY, {
+      algorithms: ['RS256'],
+    });
     if (typeof result === 'string') decoded = JSON.parse(result);
     else decoded = result as Rock7PayloadRaw;
   } catch (e) {
@@ -119,6 +144,12 @@ export function rock7ParsePost(payload_str: string): Rock7Payload | false {
   return rock7ConvertPost(decoded);
 }
 
+/**
+ * Convert a hex string ("4ab356") into a utf8 string.
+ * @param hex_str A hex string. Case insensitive, but must have an
+ * even number of characters and may not have spaces.
+ * @returns The decoded utf8 string or false if hex_str is invalid.
+ */
 export function rock7HexToString(hex_str: string): string | false {
   if (!HEX_STR_VERIFY.test(hex_str)) {
     console.error(`Invalid hex string "${hex_str}"`);
